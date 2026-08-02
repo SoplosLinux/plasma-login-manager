@@ -1,0 +1,48 @@
+Source: plasma-login-manager
+Section: kde
+Priority: optional
+Maintainer: Sergi Perich <info@soploslinux.com>
+Build-Depends: debhelper-compat (= 13),
+ cmake,
+ extra-cmake-modules (>= 6.26.0),
+ pkgconf,
+ qt6-base-dev (>= 6.10.0),
+ qt6-declarative-dev (>= 6.10.0),
+ qt6-shadertools-dev,
+ qt6-tools-dev,
+ qt6-tools-dev-tools,
+ libkf6config-dev (>= 6.26.0),
+ libkf6package-dev (>= 6.26.0),
+ libkf6windowsystem-dev (>= 6.26.0),
+ libkf6i18n-dev (>= 6.26.0),
+ libkf6dbusaddons-dev (>= 6.26.0),
+ libkf6kcmutils-dev (>= 6.26.0),
+ libkf6auth-dev (>= 6.26.0),
+ libkf6kio-dev (>= 6.26.0),
+ libplasma-dev (>= 6.7.0),
+ plasma-workspace-dev (>= 4:6.7.0),
+ liblayershellqtinterface-dev (>= 6.7.0),
+ libkscreen-dev (>= 4:6.7.0),
+ libpam0g-dev,
+ libsystemd-dev,
+ build-essential,
+ libx11-dev,
+ libxau-dev,
+ libgl-dev,
+ x11proto-dev,
+ systemd-dev,
+Standards-Version: 4.7.4
+Homepage: https://invent.kde.org/plasma/plasma-login-manager
+
+Package: plasma-login-manager
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends},
+ systemd | systemd-standalone-tmpfiles | systemd-tmpfiles,
+ init-system-helpers (>= 1.54~),
+Recommends: plasma-workspace, soplos-wallpapers01
+Conflicts: sddm
+Replaces: sddm
+Description: Plasma Login Manager display manager
+ Plasma Login provides a display manager for KDE Plasma, forked from
+ SDDM, with a greeter, wallpaper plugin integration and a System
+ Settings module (KCM).

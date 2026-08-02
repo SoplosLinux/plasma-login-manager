@@ -1,0 +1,52 @@
+#!/usr/bin/make -f
+
+# Provides DEB_HOST_MULTIARCH, so the X11 paths below are not hardcoded to
+# one architecture.
+include /usr/share/dpkg/architecture.mk
+
+# Debian's default hardening injects -D_FORTIFY_SOURCE=2 into CMAKE_C_FLAGS.
+# cmake runs its internal feature-detection test programs without -O, and
+# glibc rejects _FORTIFY_SOURCE=2 without optimisation (-O), causing every
+# cmake check (__GLIBC__, X11 headers, stdatomic…) to fail.  Disabling the
+# fortify flag here lets cmake compile its test programs cleanly.
+export DEB_BUILD_MAINT_OPTIONS = hardening=-fortify
+
+%:
+	dh $@ --buildsystem=cmake
+
+override_dh_auto_configure:
+	printf '%s\n' \
+		'if(NOT TARGET OpenGL::GL)' \
+		'  add_library(OpenGL::GL INTERFACE IMPORTED)' \
+		'endif()' \
+		> debian/inject.cmake
+	dh_auto_configure -- \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DBUILD_TESTING=OFF \
+		-DINSTALL_PAM_CONFIGURATION=OFF \
+		-DCMAKE_PROJECT_INCLUDE=$(CURDIR)/debian/inject.cmake \
+		-DX11_FOUND=TRUE \
+		-DX11_INCLUDE_DIR=/usr/include/X11 \
+		-DX11_X11_INCLUDE_PATH=/usr/include/X11 \
+		-DX11_LIBRARIES=/usr/lib/$(DEB_HOST_MULTIARCH)/libX11.so \
+		-DX11_X11_LIB=/usr/lib/$(DEB_HOST_MULTIARCH)/libX11.so
+
+override_dh_auto_clean:
+	rm -f debian/inject.cmake
+	dh_auto_clean
+
+override_dh_auto_install:
+	dh_auto_install
+	install -d debian/plasma-login-manager/usr/lib/pam.d
+	install -m 644 debian/pam/plasmalogin debian/plasma-login-manager/usr/lib/pam.d/plasmalogin
+	install -m 644 debian/pam/plasmalogin-greeter debian/plasma-login-manager/usr/lib/pam.d/plasmalogin-greeter
+	install -m 644 debian/pam/plasmalogin-autologin debian/plasma-login-manager/usr/lib/pam.d/plasmalogin-autologin
+
+# sysusers, tmpfiles and systemd service activation are handled
+# in the custom maintainer scripts (debian/postinst, prerm, postrm)
+# to guarantee the correct ordering: sysusers -> tmpfiles -> enable.
+override_dh_installsysusers:
+
+override_dh_installtmpfiles:
+
+override_dh_installsystemd:

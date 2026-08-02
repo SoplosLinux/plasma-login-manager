@@ -1,0 +1,19 @@
+#%PAM-1.0
+
+auth    required        pam_permit.so
+
+@include common-account
+
+session [success=ok ignore=ignore module_unknown=ignore default=bad] pam_selinux.so close
+session required        pam_loginuid.so
+session [success=ok ignore=ignore module_unknown=ignore default=bad] pam_selinux.so open
+session optional        pam_keyinit.so force revoke
+session required        pam_limits.so
+
+@include common-session
+
+# Can't change password
+password        required pam_deny.so
+
+session required        pam_env.so
+session required        pam_env.so envfile=/etc/default/locale

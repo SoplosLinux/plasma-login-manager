@@ -1,0 +1,31 @@
+plasma-login-manager (6.7.2-soplos) forky; urgency=medium
+
+  * New upstream release 6.7.2, matching the Plasma 6.7.2 shipped by Tyson.
+  * Set the greeter UI language from the system locale. The greeter runs as
+    the plasmalogin user before any user session exists, so nothing exports
+    LANGUAGE for it and it came up in English even though the translations
+    were installed. postinst now derives it from LANG and writes it to the
+    greeter's plasma-localerc, without overwriting a choice made in the KCM.
+  * Raise build dependencies to what 6.7.2 requires: KF6 and ECM 6.26.0,
+    Plasma components 6.7.0.
+  * Ship a European Portuguese translation in po/pt, adapted from the Brazilian
+    one. It is the only Soplos language KDE does not translate.
+  * Build with hardening=-fortify. With hardening=+all every CMake feature
+    check failed, which is what produced the mistaken belief that development
+    packages were installed with their headers missing.
+  * Declare the systemd and init-system-helpers dependencies the maintainer
+    scripts rely on. Overriding dh_installtmpfiles, dh_installsysusers and
+    dh_installsystemd stops debhelper from adding them to misc:Depends, so
+    postinst called systemd-tmpfiles, systemd-sysusers and deb-systemd-helper
+    with nothing declaring them.
+  * Purge now removes /etc/plasmalogin.conf and /var/lib/plasmalogin, which
+    postinst and tmpfiles create. The plasmalogin user is left in place.
+
+ -- Sergi Perich <info@soploslinux.com>  Sun, 02 Aug 2026 08:00:00 +0200
+
+plasma-login-manager (6.6.5-soplos) forky; urgency=medium
+
+  * Initial Soplos packaging of Plasma Login Manager 6.6.5.
+  * Use Debian-style PAM configuration based on SDDM.
+
+ -- Sergi Perich <info@soploslinux.com>  Mon, 22 Jun 2026 12:00:00 +0200

@@ -1,0 +1,114 @@
+#!/bin/sh
+set -e
+
+if [ "$1" = "configure" ] || [ "$1" = "abort-upgrade" ] || \
+   [ "$1" = "abort-deconfigure" ] || [ "$1" = "abort-remove" ]; then
+
+    # 1. Create the plasmalogin system user — must run before tmpfiles
+    if [ -x /usr/bin/systemd-sysusers ]; then
+        systemd-sysusers ${DPKG_ROOT:+--root="$DPKG_ROOT"} plasmalogin.conf || true
+    fi
+
+    # 2. Create /var/lib/plasmalogin and /run/plasmalogin
+    if [ -x /usr/bin/systemd-tmpfiles ]; then
+        systemd-tmpfiles ${DPKG_ROOT:+--root="$DPKG_ROOT"} --create plasmalogin.conf || true
+    fi
+
+    # 3. Soplos defaults — wallpaper and numlock for the greeter
+    #    Only applied on first install (files absent) to avoid overwriting
+    #    settings the user has already configured via the PLM KCM.
+    if [ -z "$DPKG_ROOT" ]; then
+
+        # Copy Soplos wallpaper to PLM's private wallpaper directory
+        if [ -f /usr/share/wallpapers/soplos/006.jpg ]; then
+            mkdir -p /var/lib/plasmalogin/wallpapers
+            cp /usr/share/wallpapers/soplos/006.jpg \
+                /var/lib/plasmalogin/wallpapers/006.jpg
+            chown -R plasmalogin:plasmalogin /var/lib/plasmalogin/wallpapers
+        fi
+
+        # Write /etc/plasmalogin.conf only if not already present
+        if [ ! -f /etc/plasmalogin.conf ]; then
+            cat > /etc/plasmalogin.conf << 'EOF'
+[Greeter][Wallpaper][org.kde.image][General]
+Image=file:///var/lib/plasmalogin/wallpapers/006.jpg
+EOF
+        fi
+
+        # Write kcminputrc only if not already present (NumLock=0 means ON in KDE)
+        if [ ! -f /var/lib/plasmalogin/.config/kcminputrc ]; then
+            mkdir -p /var/lib/plasmalogin/.config
+            cat > /var/lib/plasmalogin/.config/kcminputrc << 'EOF'
+[Keyboard]
+NumLock=0
+EOF
+            chown -R plasmalogin:plasmalogin /var/lib/plasmalogin/.config
+        fi
+
+        # Greeter UI language.
+        # The greeter runs as the plasmalogin user before any user session
+        # exists, so nothing exports LANGUAGE for it. A user session gets it
+        # from its own plasma-localerc; the greeter gets it from this one,
+        # read by startplasma-login-wayland at startup (runStartupConfig in
+        # startplasma.cpp). Without it the greeter falls back to English even
+        # though the translations are installed.
+        # Only written when no LANGUAGE is set yet, so a choice made through
+        # the PLM KCM is never overwritten.
+        _localerc=/var/lib/plasmalogin/.config/plasma-localerc
+
+        if [ -r /etc/default/locale ]; then
+            _syslang=$(sed -n 's/^[[:space:]]*LANG=//p' /etc/default/locale \
+                | tr -d '"' | head -n1)
+        else
+            _syslang=""
+        fi
+
+        # C and POSIX carry no language: leave the greeter on its own default.
+        case "$_syslang" in
+            C|C.*|POSIX|POSIX.*) _syslang="" ;;
+        esac
+
+        if [ -n "$_syslang" ] && ! grep -qs '^LANGUAGE=' "$_localerc"; then
+            _territory=${_syslang%%.*}      # es_ES.UTF-8 -> es_ES
+            _language=${_territory%%_*}     # es_ES       -> es
+            if [ "$_territory" = "$_language" ]; then
+                _list="$_language"
+            else
+                _list="$_territory:$_language"
+            fi
+            mkdir -p /var/lib/plasmalogin/.config
+            printf '\n[Translations]\nLANGUAGE=%s\n' "$_list" >> "$_localerc"
+            chown -R plasmalogin:plasmalogin /var/lib/plasmalogin/.config
+        fi
+    fi
+
+    # 4. Unmask and register plasmalogin.service
+    deb-systemd-helper unmask 'plasmalogin.service' >/dev/null || true
+    if deb-systemd-helper --quiet was-enabled 'plasmalogin.service'; then
+        deb-systemd-helper enable 'plasmalogin.service' >/dev/null || true
+    else
+        deb-systemd-helper update-state 'plasmalogin.service' >/dev/null || true
+    fi
+
+    # 5. Switch display manager (only on a live system)
+    if [ -z "$DPKG_ROOT" ] && [ -d /run/systemd/system ]; then
+
+        # Remove any existing display-manager.service symlink regardless of target
+        rm -f /etc/systemd/system/display-manager.service
+
+        # Recreate it pointing to plasmalogin (Alias from plasmalogin.service)
+        ln -sf /usr/lib/systemd/system/plasmalogin.service \
+            /etc/systemd/system/display-manager.service || true
+
+        systemctl --system daemon-reload >/dev/null || true
+
+        if [ -n "$2" ]; then
+            _action=restart
+        else
+            _action=start
+        fi
+        deb-systemd-invoke "$_action" 'plasmalogin.service' >/dev/null || true
+    fi
+fi
+
+#DEBHELPER#

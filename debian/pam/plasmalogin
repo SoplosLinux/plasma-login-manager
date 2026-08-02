@@ -1,0 +1,29 @@
+#%PAM-1.0
+
+# Block login if they are globally disabled
+auth    requisite       pam_nologin.so
+auth    required        pam_succeed_if.so user != root quiet_success
+
+# auth    sufficient      pam_succeed_if.so user ingroup nopasswdlogin
+@include common-auth
+# gnome_keyring breaks QProcess
+-auth   optional        pam_gnome_keyring.so
+-auth   optional        pam_kwallet5.so
+
+@include common-account
+
+session [success=ok ignore=ignore module_unknown=ignore default=bad] pam_selinux.so close
+session required        pam_loginuid.so
+session [success=ok ignore=ignore module_unknown=ignore default=bad] pam_selinux.so open
+session optional        pam_keyinit.so force revoke
+session required        pam_limits.so
+
+@include common-session
+
+-session optional       pam_gnome_keyring.so auto_start
+-session optional       pam_kwallet5.so auto_start
+
+@include common-password
+
+session required        pam_env.so
+session required        pam_env.so envfile=/etc/default/locale user_readenv=1

@@ -1,0 +1,18 @@
+#!/bin/sh
+set -e
+
+if [ -z "$DPKG_ROOT" ] && [ "$1" = "remove" ] && [ -d /run/systemd/system ]; then
+    deb-systemd-invoke stop 'plasmalogin.service' >/dev/null || true
+fi
+
+if [ "$1" = "remove" ] || [ "$1" = "deconfigure" ]; then
+    # Release the display-manager.service slot if we own it
+    if [ -L /etc/systemd/system/display-manager.service ]; then
+        _target=$(readlink /etc/systemd/system/display-manager.service)
+        case "$_target" in
+            *plasmalogin*) rm -f /etc/systemd/system/display-manager.service ;;
+        esac
+    fi
+fi
+
+#DEBHELPER#

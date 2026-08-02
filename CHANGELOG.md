@@ -1,0 +1,111 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/lang/en/).
+
+This changelog covers the **Soplos packaging** of Plasma Login Manager, not the
+upstream KDE software itself. Upstream release notes live at
+<https://kde.org/announcements/plasma/>.
+
+## [6.7.2-soplos] - 2026-08-02
+
+### Fixed
+- **The greeter now comes up in the system language.** It was English-only, and
+  the cause was not a missing translation: the 6.6.5 package already shipped 70
+  `.mo` files in 35 languages. The greeter runs as the `plasmalogin` system user
+  before any user session exists, and nothing exports `LANGUAGE` for it. A user
+  session sets it for itself from its own `plasma-localerc`; an installer writes
+  `LANG` and the `LC_*` formats to `/etc/default/locale` but not `LANGUAGE`. The
+  daemon copies into the greeter's environment only the locale variables it has
+  (`src/daemon/Greeter.cpp`), so the greeter got the formats and no language at
+  all, which is why the clock and the date were localised while every label was
+  in English.
+  `postinst` now derives it from `LANG` and writes it to the greeter's
+  `plasma-localerc`, read by `startplasma-login-wayland` at startup
+  (`runStartupConfig` in `startplasma.cpp`). Nothing outside the package is
+  touched, and it is skipped when a `LANGUAGE` is already set, so a language
+  chosen through the System Settings module is never overwritten.
+
+- **CMake could not detect anything while `hardening=+all` was in effect.** Every
+  `check_*` in the configure step failed — X11 headers, `__GLIBC__`, `stdatomic`
+  — which is what produced the long-standing and entirely wrong theory that the
+  development packages were installed with their headers missing from disk. The
+  headers were always there. `debian/rules` now builds with
+  `hardening=-fortify`. This is a workaround, not a fix: it disables
+  `_FORTIFY_SOURCE` for the whole package, which 6.6.5 did ship with. Narrowing
+  it to the CMake feature checks alone is still pending.
+
+- **Dependencies the maintainer scripts rely on were never declared.**
+  `debian/rules` overrides `dh_installtmpfiles`, `dh_installsysusers` and
+  `dh_installsystemd` to empty, because the ordering is handled by hand in the
+  maintainer scripts. A side effect is that debhelper stops adding its own
+  entries to `${misc:Depends}`, so `postinst` called `systemd-tmpfiles`,
+  `systemd-sysusers` and `deb-systemd-helper` with nothing in `Depends`
+  guaranteeing they exist. Now declared explicitly. The 6.6.5 package did carry
+  the systemd alternative; 6.7.2 had lost it.
+- **Purge left files behind.** `/etc/plasmalogin.conf`, written by `postinst`,
+  and `/var/lib/plasmalogin`, created by tmpfiles, survived a purge. Both are
+  removed now. The `plasmalogin` system user is deliberately kept, as is usual
+  in Debian: removing a system user can orphan files owned by it elsewhere.
+
+### Added
+- **European Portuguese translation**, in `po/pt/`, adapted from the Brazilian
+  catalogue upstream ships. It is the only one of the eight Soplos languages
+  that KDE does not translate. `compiler.sh` copies anything under `po/` into
+  the source tree before building; upstream wins if it ever ships `pt`.
+- `debian/copyright`, absent until now and required for a Debian package.
+- `LICENSE` at the project root, the upstream GPL-2.0 text.
+- `README.md` and this changelog.
+
+### Changed
+- Build dependencies raised to what 6.7.2 requires, verified against the
+  upstream `CMakeLists.txt`: KF6 and ECM from 6.22.0 to **6.26.0**, and the
+  Plasma components (PlasmaQuick, LayerShellQt, LibKWorkspace, LibKLookAndFeel,
+  KF6Screen) from 6.6.5 to **6.7.0**. Qt stays at 6.10.0.
+- Source comes from the official KDE release tarball at `download.kde.org`,
+  the KDE-supported way of building a release and the one guaranteed to carry
+  the `po/` directory.
+- `compiler.sh` takes the version as an argument (`./compiler.sh 6.7.2`),
+  so one script serves every release.
+- `compiler.sh` uses the `debian/` directory versioned in this project instead
+  of looking for a tarball in the user's home directory.
+- The build script refuses to run if the version requested does not match
+  `debian/changelog`, and if any file of the packaging is missing.
+- The build script now counts the `.mo` files in the resulting package. It
+  counted `.qm` before, which KDE never produces, so it warned that the greeter
+  would be untranslated on every single build.
+
+### Removed
+- `libgl-dev` and `plasma-workspace` from the build dependencies. Neither is a
+  requirement of the upstream `CMakeLists.txt`, which asks only for `xau`, and
+  the built binary links against `libxau6` alone out of the whole X11 and
+  OpenGL stack. `plasma-workspace` also pulled the entire desktop onto the
+  build machine.
+- From `compiler.sh`: the `apt-file` install and its `apt-file update`, which
+  downloaded the Contents files of the whole Debian archive and were never used
+  anywhere in the script; the block that reinstalled seven development packages
+  on every run; the hard verification of X11 and OpenGL headers, which aborted
+  the build on a Wayland-only display manager that needs neither; and the
+  `apt autoremove` sweep at the end.
+- The fallback branch of `compiler.sh` that generated a `debian/` directory from
+  scratch when no scaffold tarball was found. It produced, with no error
+  whatsoever, a package missing `Conflicts`/`Replaces`, the maintainer scripts,
+  the hardening flags and the `dh` overrides: it installed fine but never took
+  over the display manager, never created the `plasmalogin` user and never set
+  the Soplos wallpaper. Renaming the version was enough to trigger it.
+
+## [6.6.5-soplos] - 2026-06-22
+
+### Added
+- Initial Soplos packaging of Plasma Login Manager, the Wayland-native display
+  manager KDE is building as a replacement for SDDM. No official Debian package
+  exists, so it is built from source for Soplos.
+- Debian-style PAM configuration adapted from SDDM: `plasmalogin`,
+  `plasmalogin-greeter` and `plasmalogin-autologin`.
+- Maintainer scripts creating the `plasmalogin` system user, its runtime
+  directories, and taking over `display-manager.service` from SDDM.
+- Soplos defaults applied on first install only, so they never overwrite what
+  the user later sets through the KCM: Soplos wallpaper for the greeter and
+  NumLock enabled.
