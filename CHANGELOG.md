@@ -9,7 +9,7 @@ This changelog covers the **Soplos packaging** of Plasma Login Manager, not the
 upstream KDE software itself. Upstream release notes live at
 <https://kde.org/announcements/plasma/>.
 
-## [6.7.2-soplos] - 2026-08-02
+## [6.7.2-1-soplos] - 2026-08-02
 
 ### Fixed
 - **The greeter now comes up in the system language.** It was English-only, and
@@ -45,6 +45,15 @@ upstream KDE software itself. Upstream release notes live at
   `systemd-sysusers` and `deb-systemd-helper` with nothing in `Depends`
   guaranteeing they exist. Now declared explicitly. The 6.6.5 package did carry
   the systemd alternative; 6.7.2 had lost it.
+- **Upgrading the package logged the user out.** `postinst` restarted
+  `plasmalogin.service` whenever it was an upgrade rather than a fresh install,
+  and restarting a display manager tears down the graphical session running on
+  top of it. Worse than the interruption itself: when the upgrade came in the
+  middle of an `apt` run, everything still queued behind it was left half
+  configured. The service is no longer touched on upgrade, so the new version
+  takes effect on the next boot, which is how every display manager in Debian
+  behaves. On a fresh install it is still started, and only if it is not
+  already running.
 - **Purge left files behind.** `/etc/plasmalogin.conf`, written by `postinst`,
   and `/var/lib/plasmalogin`, created by tmpfiles, survived a purge. Both are
   removed now. The `plasmalogin` system user is deliberately kept, as is usual
@@ -77,12 +86,21 @@ upstream KDE software itself. Upstream release notes live at
   counted `.qm` before, which KDE never produces, so it warned that the greeter
   would be untranslated on every single build.
 
+- Build dependencies completed: `libgl-dev`, `x11proto-dev`, `systemd-dev` and
+  `build-essential` added, `libxcb1-dev` dropped. What the binary links against
+  is not the same as what CMake needs to configure: the greeter links `libxau6`
+  alone out of the whole X11 and OpenGL stack, yet Qt6Gui's CMake config still
+  requires the OpenGL headers to be present or it is reported as not found.
+  Building without them only worked as long as the machine had leftovers from
+  earlier attempts installed.
+- `debian/rules` forces the X11 and OpenGL detection that the hardening flags
+  broke: an injected `OpenGL::GL` target and explicit `X11_*` cache entries.
+  The library paths come from `DEB_HOST_MULTIARCH` rather than being hardcoded
+  to amd64, and `dh_auto_clean` removes the generated `debian/inject.cmake`.
+  These workarounds should be retested once the hardening issue is narrowed
+  down; they are likely to be unnecessary by then.
+
 ### Removed
-- `libgl-dev` and `plasma-workspace` from the build dependencies. Neither is a
-  requirement of the upstream `CMakeLists.txt`, which asks only for `xau`, and
-  the built binary links against `libxau6` alone out of the whole X11 and
-  OpenGL stack. `plasma-workspace` also pulled the entire desktop onto the
-  build machine.
 - From `compiler.sh`: the `apt-file` install and its `apt-file update`, which
   downloaded the Contents files of the whole Debian archive and were never used
   anywhere in the script; the block that reinstalled seven development packages

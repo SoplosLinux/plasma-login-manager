@@ -1,7 +1,7 @@
 # Plasma Login Manager for Soplos Linux
 
 [![License: GPL-2.0+](https://img.shields.io/badge/License-GPL--2.0%2B-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0)
-[![Version](https://img.shields.io/badge/version-6.7.2--soplos-green.svg)]()
+[![Version](https://img.shields.io/badge/version-6.7.2--1--soplos-green.svg)]()
 
 Soplos Linux packaging of KDE Plasma Login Manager, the display manager used by Soplos Linux Tyson.
 
@@ -24,7 +24,7 @@ There is no official package for Debian or Debian-based distributions, so this r
 
 To build:
 
-- Soplos Linux on a Debian forky base. Any of the three works, including Tyron: the build dependencies come from Debian, not from the desktop in use.
+- Soplos Linux Tyson. The build dependencies come from Debian rather than from the desktop in use, so it will build on Tyron too, but the resulting package is pinned to the Qt of the machine it was built on and will not install elsewhere.
 - Internet access, to download the upstream source and the build dependencies.
 - KF6 and ECM 6.26.0 or newer, and the Plasma development packages 6.7.0 or newer.
 
@@ -42,7 +42,9 @@ To install and run:
 ./compiler.sh 6.7.2
 ```
 
-The script downloads the official KDE release tarball, imports the `debian/` directory of this project, installs the build dependencies, builds the package and removes everything it installed. The resulting `.deb` is left next to the script.
+The script downloads the official KDE release tarball, imports the `debian/` directory of this project, copies in any translation under `po/`, installs the build dependencies and builds the package. The resulting `.deb` is left next to the script, and the build tree is kept so a failed run can be inspected and a rebuild does not download the tarball again.
+
+Build on the machine the package is for. The `.deb` carries an exact-equality dependency on `qt6-declarative-private-abi`, whose version comes from the Qt of the machine it was built on, so a package built somewhere with a different Qt will refuse to install.
 
 Before building a different version, update `debian/changelog` first: the script refuses to run if the version requested does not match what the changelog declares.
 
@@ -78,12 +80,15 @@ Upstream is licensed under GPL-2.0+, and so is the packaging in this repository.
 - [KDE release tarballs](https://download.kde.org/stable/plasma/)
 - [Soplos Linux](https://soplos.org)
 
-## New in version 6.7.2-soplos (August 2, 2026)
+## New in version 6.7.2-1-soplos (August 2, 2026)
 
 - **Fixed**: the greeter comes up in the system language. It was English-only because nothing sets `LANGUAGE` for the user the greeter runs as, not because the translations were missing.
 - **Changed**: build dependencies raised to KF6/ECM 6.26.0 and Plasma 6.7.0, as required by 6.7.2.
 - **Changed**: `compiler.sh` takes the version as an argument and uses the `debian/` directory of this project.
-- **Removed**: `libgl-dev` and `plasma-workspace` from the build dependencies. Neither is required by upstream, and `plasma-workspace` pulled the whole desktop onto the build machine.
+- **Added**: European Portuguese, the only one of the eight Soplos languages KDE does not translate.
+- **Fixed**: upgrading no longer restarts the display manager, which used to close the session and leave the rest of an `apt` run half applied.
+- **Fixed**: `purge` now removes the configuration and state the package creates.
+- **Changed**: build dependencies completed, and `debian/rules` works around the hardening flags that were breaking every CMake detection.
 - **Removed**: the fallback that silently generated a degraded `debian/` directory when the scaffold tarball was missing.
 
 ## New in version 6.6.5-soplos (June 22, 2026)

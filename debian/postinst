@@ -102,12 +102,16 @@ EOF
 
         systemctl --system daemon-reload >/dev/null || true
 
-        if [ -n "$2" ]; then
-            _action=restart
-        else
-            _action=start
+        # Never restart the display manager on upgrade. Restarting it kills the
+        # running graphical session, and when that happens in the middle of an
+        # apt run the rest of the upgrade is left half configured. The new
+        # version takes effect on the next boot, which is what every display
+        # manager in Debian does.
+        # On a fresh install there is no session to lose, so start it, and only
+        # if it is not already running.
+        if [ -z "$2" ] && ! systemctl is-active --quiet plasmalogin.service; then
+            deb-systemd-invoke start 'plasmalogin.service' >/dev/null || true
         fi
-        deb-systemd-invoke "$_action" 'plasmalogin.service' >/dev/null || true
     fi
 fi
 

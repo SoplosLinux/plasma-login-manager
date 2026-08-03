@@ -1,4 +1,4 @@
-plasma-login-manager (6.7.2-soplos) forky; urgency=medium
+plasma-login-manager (6.7.2-1-soplos) forky; urgency=medium
 
   * New upstream release 6.7.2, matching the Plasma 6.7.2 shipped by Tyson.
   * Set the greeter UI language from the system locale. The greeter runs as
@@ -20,6 +20,10 @@ plasma-login-manager (6.7.2-soplos) forky; urgency=medium
     with nothing declaring them.
   * Purge now removes /etc/plasmalogin.conf and /var/lib/plasmalogin, which
     postinst and tmpfiles create. The plasmalogin user is left in place.
+  * Do not restart plasmalogin.service on upgrade. It killed the running
+    graphical session, and doing that during an apt run left the rest of the
+    upgrade half configured. The new version now takes effect on the next
+    boot, as it does for every display manager in Debian.
 
  -- Sergi Perich <info@soploslinux.com>  Sun, 02 Aug 2026 08:00:00 +0200
 
