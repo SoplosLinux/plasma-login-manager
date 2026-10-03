@@ -9,6 +9,21 @@ This changelog covers the **Soplos packaging** of Plasma Login Manager, not the
 upstream KDE software itself. Upstream release notes live at
 <https://kde.org/announcements/plasma/>.
 
+## [6.7.4-1-soplos] - 2026-10-01
+
+### Fixed
+- **The greeter language stayed in English, or a mix of English and the
+  system language, on both fresh installs and upgrades.** `plasmalogin`
+  writes its own `plasma-localerc` the first time the greeter runs, with a
+  hardcoded `en_US` default, before `postinst` ever gets a chance to apply
+  the real system locale: a Calamares install ships its squashfs with no
+  locale set yet, and an already-installed system already has that
+  first-run default on disk by the time `plasma-login-manager` is next
+  upgraded. `postinst` wrote `LANGUAGE` only when none was present, which
+  protected that wrong default forever instead of an actual choice. It now
+  overwrites `LANGUAGE` unconditionally on every install and upgrade of
+  this package.
+
 ## [6.7.2-1-soplos] - 2026-08-02
 
 ### Fixed

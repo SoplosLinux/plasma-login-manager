@@ -52,8 +52,21 @@ EOF
         # read by startplasma-login-wayland at startup (runStartupConfig in
         # startplasma.cpp). Without it the greeter falls back to English even
         # though the translations are installed.
-        # Only written when no LANGUAGE is set yet, so a choice made through
-        # the PLM KCM is never overwritten.
+        #
+        # plasmalogin itself writes a plasma-localerc of its own the first
+        # time the greeter runs, with a hardcoded en_US default, before this
+        # postinst ever gets a chance to run with the real system locale: on
+        # a Calamares install the squashfs ships with no locale set yet (it
+        # is only assigned during install, after unpackfs), and on an
+        # already-installed system the greeter's own first-run default is
+        # already in place by the time plasma-login-manager is next
+        # upgraded. Either way, writing LANGUAGE only when absent protects
+        # that wrong default forever instead of a real choice, so this now
+        # overwrites it unconditionally on every install and upgrade of this
+        # package. A language picked through the PLM KCM since the last
+        # install/upgrade of this package is not preserved across the next
+        # one; that trade-off is intentional, since this runs far less often
+        # than it needs to correct a default nobody chose.
         _localerc=/var/lib/plasmalogin/.config/plasma-localerc
 
         if [ -r /etc/default/locale ]; then
@@ -68,7 +81,7 @@ EOF
             C|C.*|POSIX|POSIX.*) _syslang="" ;;
         esac
 
-        if [ -n "$_syslang" ] && ! grep -qs '^LANGUAGE=' "$_localerc"; then
+        if [ -n "$_syslang" ]; then
             _territory=${_syslang%%.*}      # es_ES.UTF-8 -> es_ES
             _language=${_territory%%_*}     # es_ES       -> es
             if [ "$_territory" = "$_language" ]; then
@@ -77,7 +90,13 @@ EOF
                 _list="$_territory:$_language"
             fi
             mkdir -p /var/lib/plasmalogin/.config
-            printf '\n[Translations]\nLANGUAGE=%s\n' "$_list" >> "$_localerc"
+            if [ -f "$_localerc" ] && grep -qs '^LANGUAGE=' "$_localerc"; then
+                sed -i "s/^LANGUAGE=.*/LANGUAGE=${_list}/" "$_localerc"
+            elif [ -f "$_localerc" ] && grep -qs '^\[Translations\]' "$_localerc"; then
+                sed -i "/^\[Translations\]/a LANGUAGE=${_list}" "$_localerc"
+            else
+                printf '\n[Translations]\nLANGUAGE=%s\n' "$_list" >> "$_localerc"
+            fi
             chown -R plasmalogin:plasmalogin /var/lib/plasmalogin/.config
         fi
     fi
