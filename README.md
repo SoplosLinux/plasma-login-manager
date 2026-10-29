@@ -1,7 +1,7 @@
 # Plasma Login Manager for Soplos Linux
 
 [![License: GPL-2.0+](https://img.shields.io/badge/License-GPL--2.0%2B-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0)
-[![Version](https://img.shields.io/badge/version-6.7.2--1--soplos-green.svg)]()
+[![Version](https://img.shields.io/badge/version-6.7.4--3--soplos-green.svg)]()
 
 Soplos Linux packaging of KDE Plasma Login Manager, the display manager used by Soplos Linux Tyson.
 
@@ -15,7 +15,7 @@ There is no official package for Debian or Debian-based distributions, so this r
 
 ## What this packaging adds
 
-- **PAM configuration** in Debian style, adapted from SDDM: `plasmalogin`, `plasmalogin-greeter` and `plasmalogin-autologin`.
+- **PAM configuration** in Debian style, adapted from SDDM: `plasmalogin`, `plasmalogin-greeter` and `plasmalogin-autologin`, installed in `/etc/pam.d`.
 - **System user** `plasmalogin` and its runtime directories, created through `systemd-sysusers` and `systemd-tmpfiles`.
 - **Display manager takeover**: the package replaces SDDM and points `display-manager.service` at `plasmalogin`.
 - **Soplos defaults**, applied only on first install so they never overwrite settings the user changed later through the System Settings module: the Soplos wallpaper for the greeter, and NumLock enabled.
@@ -39,7 +39,7 @@ To install and run:
 ./compiler.sh
 
 # Or build a specific release
-./compiler.sh 6.7.2
+./compiler.sh 6.7.4
 ```
 
 The script downloads the official KDE release tarball, imports the `debian/` directory of this project, copies in any translation under `po/`, installs the build dependencies and builds the package. The resulting `.deb` is left next to the script, and the build tree is kept so a failed run can be inspected and a rebuild does not download the tarball again.
@@ -79,6 +79,17 @@ Upstream is licensed under GPL-2.0+, and so is the packaging in this repository.
 - [Upstream project](https://invent.kde.org/plasma/plasma-login-manager)
 - [KDE release tarballs](https://download.kde.org/stable/plasma/)
 - [Soplos Linux](https://soplos.org)
+
+## New in version 6.7.4-3-soplos (October 29, 2026)
+
+- **Fixed**: the PAM files are installed in `/etc/pam.d`. In `/usr/lib/pam.d` the libpam of the system does not read them, so PAM ignored them and fell back to `/etc/pam.d/other`.
+- **Changed**: the PAM files match the ones built in 6.7.4-2, which were never committed to this repository.
+- **Changed**: `debian/control` goes back to `Conflicts` and `Replaces` on `sddm`, and `soplos-wallpapers01` as `Recommends`.
+
+## New in version 6.7.4-1-soplos (October 1, 2026)
+
+- **Fixed**: the greeter language stayed in English, or a mix of English and the system language. `postinst` now overwrites `LANGUAGE` on every install and upgrade of this package.
+- **Changed**: new upstream release 6.7.4.
 
 ## New in version 6.7.2-1-soplos (August 2, 2026)
 

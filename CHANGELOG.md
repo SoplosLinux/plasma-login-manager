@@ -9,6 +9,27 @@ This changelog covers the **Soplos packaging** of Plasma Login Manager, not the
 upstream KDE software itself. Upstream release notes live at
 <https://kde.org/announcements/plasma/>.
 
+## [6.7.4-3-soplos] - 2026-10-29
+
+### Fixed
+- **The PAM configuration was ignored.** `plasmalogin`, `plasmalogin-greeter`
+  and `plasmalogin-autologin` were installed in `/usr/lib/pam.d`, which the
+  libpam of the system does not support: the journal shows a warning at
+  every login and PAM falls back to `/etc/pam.d/other`. They are now
+  installed in `/etc/pam.d`, as conffiles the administrator can edit.
+
+### Changed
+- The PAM files match the ones built in 6.7.4-2, which were never committed
+  to this repository: the session rules are in another order
+  (`pam_keyinit`, `pam_limits` and `pam_loginuid`, then `pam_selinux` open)
+  and have comments.
+- `debian/control` goes back to what this repository declares: `Conflicts`
+  and `Replaces` on `sddm`, and `soplos-wallpapers01` as `Recommends`
+  (`postinst` copies the wallpaper only if it is there). The 6.7.4-2 package
+  was built without the first two and with the wallpapers as a hard
+  dependency.
+- `compiler.sh` builds revision `3-soplos`.
+
 ## [6.7.4-1-soplos] - 2026-10-01
 
 ### Fixed

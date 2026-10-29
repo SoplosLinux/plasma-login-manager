@@ -37,10 +37,10 @@ override_dh_auto_clean:
 
 override_dh_auto_install:
 	dh_auto_install
-	install -d debian/plasma-login-manager/usr/lib/pam.d
-	install -m 644 debian/pam/plasmalogin debian/plasma-login-manager/usr/lib/pam.d/plasmalogin
-	install -m 644 debian/pam/plasmalogin-greeter debian/plasma-login-manager/usr/lib/pam.d/plasmalogin-greeter
-	install -m 644 debian/pam/plasmalogin-autologin debian/plasma-login-manager/usr/lib/pam.d/plasmalogin-autologin
+	install -d debian/plasma-login-manager/etc/pam.d
+	install -m 644 debian/pam/plasmalogin debian/plasma-login-manager/etc/pam.d/plasmalogin
+	install -m 644 debian/pam/plasmalogin-greeter debian/plasma-login-manager/etc/pam.d/plasmalogin-greeter
+	install -m 644 debian/pam/plasmalogin-autologin debian/plasma-login-manager/etc/pam.d/plasmalogin-autologin
 
 # sysusers, tmpfiles and systemd service activation are handled
 # in the custom maintainer scripts (debian/postinst, prerm, postrm)

@@ -29,7 +29,7 @@ set -e
 # -----------------------------------------------------------------------------
 VERSION_DEFAULT="6.7.4"
 VERSION="${1:-$VERSION_DEFAULT}"
-REVISION="1-soplos"
+REVISION="3-soplos"
 
 # Directory of this script. The debian/ that gets packaged comes from here, so
 # what is built is always what is versioned in the project.
